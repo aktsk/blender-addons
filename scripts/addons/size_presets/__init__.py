@@ -1,25 +1,28 @@
+import bpy
+import os
+import json
+
 
 bl_info = {
     "name" : "Grease Pencil Brush/Size Presets",
+    "auther": "Shintaro Ishimine",
     "description": "Select grease pencil brush size from presets.",
     "version": (1, 0, 0),
-    "blender": (2, 9, 1),
-    "location": "Properties > Active Tool and Workspace Settigns > Size Presets"
+    "blender": (2, 91, 0),
+    "location": "Properties > Active Tool and Workspace Settigns > Size Presets",
     "category": "Paint"
 }
 
-from bpy.types import Panel
-from bl_ui.utils import PresetPanel
-    
 
 class View3DPanel:
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
     bl_category = "Tool"
 
     @classmethod
     def poll(cls, context):
         return (context.object is not None)
+
 
 class GreasePencilPaintPanel:
     bl_context = ".greasepencil_paint"
@@ -27,16 +30,15 @@ class GreasePencilPaintPanel:
 
     @classmethod
     def poll(cls, context):
-        if context.space_data.type in {'VIEW_3D', 'PROPERTIES'}:
+        if context.space_data.type in {"VIEW_3D", "PROPERTIES"}:
             if context.gpencil_data is None:
                 return False
-
-            gpd = context.gpencil_data
-            return bool(gpd.is_stroke_paint_mode)
+            return bool(context.gpencil_data.is_stroke_paint_mode)
         else:
             return True
 
-class VIEW3D_PT_tools_grease_pencil_radius_select(Panel, View3DPanel, GreasePencilPaintPanel):
+
+class VIEW3D_PT_tools_grease_pencil_radius_select(bpy.types.Panel, View3DPanel, GreasePencilPaintPanel):
     bl_context = ".greasepencil_paint"
     bl_label = "Radius Presets"
 
@@ -45,23 +47,50 @@ class VIEW3D_PT_tools_grease_pencil_radius_select(Panel, View3DPanel, GreasePenc
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        tool_settings = context.scene.tool_settings
-        gpencil_paint = tool_settings.gpencil_paint
+        brush = context.scene.tool_settings.gpencil_paint.brush
 
         row = layout.row()
-        row.column().template_ID_preview(gpencil_paint, "brush", new="brush.scale_size", rows=3, cols=8)
+        row.column().template_icon_view(brush, "size_preset", show_labels=True)
+        row.column().menu("VIEW3D_MT_brush_gpencil_context_menu", icon="DOWNARROW_HLT", text="")
+        layout.row().prop(brush, "size", text="Radius")
+            
 
-        col = row.column()
-        col.menu("VIEW3D_MT_brush_gpencil_context_menu", icon='DOWNARROW_HLT', text="")
+global_store = {}
 
-        if context.mode == 'PAINT_GPENCIL':
-            brush = gpencil_paint.brush
-            if brush is not None:
-                layout.row().prop(brush, "size", text="Radius")
+
+def load_presets(presets_location):
+    presets_path = os.path.join(presets_location, "presets.json")
+    pcoll = bpy.utils.previews.new()
+    with open(presets_path) as f:
+        presets = json.load(f)
+    global_store["presets"] = presets
+    image_location = os.path.join(presets_location, "icons")
+    items = []
+    for i, key in enumerate(presets.keys()):
+        preset = presets[key]
+        filepath = os.path.join(image_location, preset["icon_file"])
+        thumb = pcoll.load(filepath, filepath, "IMAGE")
+        items.append((key, key, "", thumb.icon_id, i))
+    global_store["pcoll"] = pcoll
+    return items
+
+def update_presets(self, context):
+    brush = context.scene.tool_settings.gpencil_paint.brush
+    size = global_store["presets"][brush.size_preset]["size"]
+    brush.size = size
 
 def register():
-    from bpy.utils import register_class
-    register_class(VIEW3D_PT_tools_grease_pencil_radius_select)
+    presets_location = os.path.join(os.path.dirname(__file__), "presets")
+    # presets_location = bpy.path.abspath("//presets")
+    items = load_presets(presets_location)
+    bpy.types.Brush.size_preset = bpy.props.EnumProperty(items=items, update=update_presets)
+    bpy.utils.register_class(VIEW3D_PT_tools_grease_pencil_radius_select)
 
 def unregister():
-    pass
+    bpy.utils.unregister_class(VIEW3D_PT_tools_grease_pencil_radius_select)
+    bpy.utils.previews.remove(global_store["pcoll"])
+    global_store.clear()
+    del bpy.types.Brush.size_preset
+
+if __name__ == "__main__":
+    register()
