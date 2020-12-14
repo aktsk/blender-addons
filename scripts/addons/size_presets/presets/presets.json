@@ -1,0 +1,22 @@
+{
+  "50px": {
+    "size": 50,
+    "icon_file": "icon_50px.png"
+  },
+  "100px": {
+    "size": 100,
+    "icon_file": "icon_100px.png"
+  },
+  "150px": {
+    "size": 150,
+    "icon_file": "icon_150px.png"
+  },
+  "200px": {
+    "size": 200,
+    "icon_file": "icon_200px.png"
+  },
+  "250px": {
+    "size": 250,
+    "icon_file": "icon_250px.png"
+  }
+}
