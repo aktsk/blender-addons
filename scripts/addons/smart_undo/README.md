@@ -18,7 +18,7 @@ Undo (取り消し) を行っても、カメラの反転や回転は戻らない
 
 ショートカットで以下のように `smart_undo.switch_enabled` を割り当てることで、有効無効の切り替えができます。
 
-![usage](./img/usage.png)
+![usage](./img/usage2.png)
 
 ## 開発メモ
 
