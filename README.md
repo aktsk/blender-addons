@@ -10,7 +10,7 @@
 利用時には気にしなくても大丈夫です！
 開発時には、以下のようにすると Addon を開発しやすいです。
 
-## セットアップ時
+### セットアップ時
 
 ```sh
 # コマンドラインから起動をするとログ等の出力が見れます
@@ -19,7 +19,7 @@ $ /Applications/Blender.app/Contents/MacOS/Blender
 
 `Prefarence > Fole Paths > Data > Scripts` に `/path-to-this-repo/scripts/` をセットする.
 
-## 開発時
+### 開発時
 
 ```sh
 # コマンドラインから起動をするとログ等の出力が見れます
