@@ -4,7 +4,7 @@ import json
 
 
 bl_info = {
-    "name" : "Grease Pencil Brush/Size Presets",
+    "name" : "Size Presets",
     "auther": "Shintaro Ishimine",
     "description": "Select grease pencil brush size from presets.",
     "version": (1, 0, 0),
@@ -40,7 +40,7 @@ class GreasePencilPaintPanel:
 
 class VIEW3D_PT_tools_grease_pencil_radius_select(bpy.types.Panel, View3DPanel, GreasePencilPaintPanel):
     bl_context = ".greasepencil_paint"
-    bl_label = "Radius Presets"
+    bl_label = "Size Presets"
 
     def draw(self, context):
         layout = self.layout
@@ -79,16 +79,97 @@ def update_presets(self, context):
     size = global_store["presets"][brush.size_preset]["size"]
     brush.size = size
 
+
+class SIZEPRESETS_OT_IncreaseBrushSize(bpy.types.Operator):
+    bl_idname = "brush.increase_brush_size"
+    bl_label = "Increase brush size"
+    bl_description = "Change brush size to next bigger preset"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        brush = context.scene.tool_settings.gpencil_paint.brush
+        current_size = brush.size
+        order = sorted(global_store["presets"].items(), key=lambda x: x[1]["size"])
+        for k, v in order:
+            size = v["size"]
+            if current_size < size:
+                brush.size_preset = k
+                brush.size = size
+                return {'FINISHED'}
+        self.report({'INFO'}, "bigger preset not found")
+        return {'FINISHED'}
+
+
+class SIZEPRESETS_OT_DecreaseBrushSize(bpy.types.Operator):
+    bl_idname = "brush.decrease_brush_size"
+    bl_label = "Decrease brush size"
+    bl_description = "Change brush size to next smaller preset"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        brush = context.scene.tool_settings.gpencil_paint.brush
+        current_size = brush.size
+        order = sorted(global_store["presets"].items(), key=lambda x: x[1]["size"], reverse=True)
+        for k, v in order:
+            size = v["size"]
+            if current_size > size:
+                brush.size_preset = k
+                brush.size = size
+                return {'FINISHED'}
+        self.report({'INFO'}, "smaller preset not found")
+        return {'FINISHED'}
+
+
+classes = [
+    VIEW3D_PT_tools_grease_pencil_radius_select,
+    SIZEPRESETS_OT_IncreaseBrushSize,
+    SIZEPRESETS_OT_DecreaseBrushSize,
+]
+
+def register_shortcuts():
+    keyconfigs = bpy.context.window_manager.keyconfigs.addon
+    if keyconfigs:
+        global_store["keymaps"] = []
+        keymap = keyconfigs.keymaps.new(name="3D View", space_type="VIEW_3D")
+        item_increase = keymap.keymap_items.new(
+            idname=SIZEPRESETS_OT_IncreaseBrushSize.bl_idname,
+            type='LEFT_BRACKET',
+            value='PRESS',
+            shift=False,
+            ctrl=False,
+            alt=False
+        )
+        item_decrease = keymap.keymap_items.new(
+            idname=SIZEPRESETS_OT_DecreaseBrushSize.bl_idname,
+            type='RIGHT_BRACKET',
+            value='PRESS',
+            shift=False,
+            ctrl=False,
+            alt=False
+        )
+        global_store["keymaps"].append((keymap, item_increase))
+        global_store["keymaps"].append((keymap, item_decrease))
+
+
+def unregister_shortcuts():
+    for km, i in global_store["keymaps"]:
+        km.keymap_items.remove(i)
+
+
 def register():
     presets_location = os.path.join(os.path.dirname(__file__), "presets")
     # presets_location = bpy.path.abspath("//presets")
     items = load_presets(presets_location)
     bpy.types.Brush.size_preset = bpy.props.EnumProperty(items=items, update=update_presets)
-    bpy.utils.register_class(VIEW3D_PT_tools_grease_pencil_radius_select)
+    for c in classes:
+        bpy.utils.register_class(c)
+    register_shortcuts()
 
 def unregister():
-    bpy.utils.unregister_class(VIEW3D_PT_tools_grease_pencil_radius_select)
+    for c in classes:
+        bpy.utils.unregister_class(c)
     bpy.utils.previews.remove(global_store["pcoll"])
+    unregister_shortcuts()
     global_store.clear()
     del bpy.types.Brush.size_preset
 
