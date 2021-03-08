@@ -1,7 +1,7 @@
 bl_info = {
     "name" : "Smart Undo",
     "author": "takanakahiko(aktsk)",
-    "version": (1, 0),
+    "version": (1, 1),
     "blender": (2, 91, 0),
     "location": "",
     "description": "Undo 時も反転や回転の状態を維持します",
@@ -22,32 +22,32 @@ class SwitchEnabled(bpy.types.Operator):
     def execute(self, context):
         preferences = context.preferences.addons[__name__].preferences
         preferences.enabled = not preferences.enabled
-        SmartUndoUI.redraw()
+        SMART_UNDO_PT_SmartUndoUI.redraw()
         return{'FINISHED'}
 
 
 # Undo 前にカメラの反転や回転の状態を記録する
 @bpy.app.handlers.persistent
-def handler_undo_pre(scene):
-    vars(handler_undo_pre)["scale.x"] = scene.camera.scale.x
-    vars(handler_undo_pre)["rotation_euler.y"] = scene.camera.rotation_euler.y
+def handler_pre_oparation(scene):
+    vars(handler_pre_oparation)["scale.x"] = scene.camera.scale.x
+    vars(handler_pre_oparation)["rotation_euler.y"] = scene.camera.rotation_euler.y
 
 
 # Undo 後にもしカメラが変化していたらもとに戻す（Undoしても変わってないように見える）
 @bpy.app.handlers.persistent
-def handler_undo_post(scene):
+def handler_post_oparation(scene):
 
     # 有効化されていなかったら処理を中止する
     preferences = bpy.context.preferences.addons[__name__].preferences
     if not preferences.enabled:
         return
 
-    scale_x = vars(handler_undo_pre)["scale.x"]
+    scale_x = vars(handler_pre_oparation)["scale.x"]
     if scene.camera.scale.x != scale_x :
         scene.camera.scale.x = scale_x
         # bpy.ops.ed.undo() # 反転作業がヒストリに記録されているならこの処理が必要となる
 
-    rotation_euler_y = vars(handler_undo_pre)["rotation_euler.y"]
+    rotation_euler_y = vars(handler_pre_oparation)["rotation_euler.y"]
     if scene.camera.rotation_euler.y != rotation_euler_y :
         scene.camera.rotation_euler.y = rotation_euler_y
         # bpy.ops.ed.undo() # 回転作業がヒストリに記録されているならこの処理が必要となる
@@ -60,7 +60,7 @@ class SMART_UNDO_AddonPreferences(bpy.types.AddonPreferences):
         self.layout.prop(self, "enabled")
 
 
-class SmartUndoUI(bpy.types.Panel):
+class SMART_UNDO_PT_SmartUndoUI(bpy.types.Panel):
     bl_label = "Smart Undo"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -76,13 +76,13 @@ class SmartUndoUI(bpy.types.Panel):
     @staticmethod
     def redraw():
         try:
-            bpy.utils.unregister_class(SmartUndoUI)
+            bpy.utils.unregister_class(SMART_UNDO_PT_SmartUndoUI)
         except:
             pass
-        bpy.utils.register_class(SmartUndoUI)
+        bpy.utils.register_class(SMART_UNDO_PT_SmartUndoUI)
 
 
-classes = [ SMART_UNDO_AddonPreferences, SmartUndoUI, SwitchEnabled ]
+classes = [ SMART_UNDO_AddonPreferences, SMART_UNDO_PT_SmartUndoUI, SwitchEnabled ]
 
 
 def register():
@@ -91,11 +91,12 @@ def register():
     for c in classes:
         bpy.utils.register_class(c)
     
-    bpy.app.handlers.undo_pre.append(handler_undo_pre)
-    bpy.app.handlers.undo_post.append(handler_undo_post)
+    bpy.app.handlers.undo_pre.append(handler_pre_oparation)
+    bpy.app.handlers.undo_post.append(handler_post_oparation)
 
-    bpy.app.handlers.redo_pre.append(handler_undo_pre)
-    bpy.app.handlers.redo_post.append(handler_undo_post)
+    bpy.app.handlers.redo_pre.append(handler_pre_oparation)
+    bpy.app.handlers.redo_post.append(handler_post_oparation)
+
 
 def unregister():
     print("unregister smart_undo")
@@ -103,11 +104,11 @@ def unregister():
     for c in reversed(classes):
         bpy.utils.unregister_class(c)
 
-    bpy.app.handlers.undo_pre.remove(handler_undo_pre)
-    bpy.app.handlers.undo_post.remove(handler_undo_post)
+    bpy.app.handlers.undo_pre.remove(handler_pre_oparation)
+    bpy.app.handlers.undo_post.remove(handler_post_oparation)
 
-    bpy.app.handlers.redo_pre.remove(handler_undo_pre)
-    bpy.app.handlers.redo_post.remove(handler_undo_post)
+    bpy.app.handlers.redo_pre.remove(handler_pre_oparation)
+    bpy.app.handlers.redo_post.remove(handler_post_oparation)
 
 
 if __name__ == "__main__":
