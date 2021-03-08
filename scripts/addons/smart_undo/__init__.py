@@ -68,10 +68,8 @@ class SMART_UNDO_PT_SmartUndoUI(bpy.types.Panel):
   
     def draw(self, context):
         preferences = context.preferences.addons[__name__].preferences
-        if preferences.enabled:
-            self.layout.operator(SwitchEnabled.bl_idname, text="無効にする")
-        else:
-            self.layout.operator(SwitchEnabled.bl_idname, text="有効にする")
+        button_text = "無効にする" if preferences.enabled else "有効にする"
+        self.layout.operator(SwitchEnabled.bl_idname, text=button_text)
     
     @staticmethod
     def redraw():
