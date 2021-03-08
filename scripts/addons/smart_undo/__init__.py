@@ -94,6 +94,8 @@ def register():
     bpy.app.handlers.undo_pre.append(handler_undo_pre)
     bpy.app.handlers.undo_post.append(handler_undo_post)
 
+    bpy.app.handlers.redo_pre.append(handler_undo_pre)
+    bpy.app.handlers.redo_post.append(handler_undo_post)
 
 def unregister():
     print("unregister smart_undo")
@@ -103,6 +105,9 @@ def unregister():
 
     bpy.app.handlers.undo_pre.remove(handler_undo_pre)
     bpy.app.handlers.undo_post.remove(handler_undo_post)
+
+    bpy.app.handlers.redo_pre.remove(handler_undo_pre)
+    bpy.app.handlers.redo_post.remove(handler_undo_post)
 
 
 if __name__ == "__main__":
